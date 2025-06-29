@@ -1,0 +1,64 @@
+{
+  "tools": [
+    {
+      "name": "navigate",
+      "description": "Navigate to different pages in the ecommerce site",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "string",
+            "enum": ["home", "products", "cart", "checkout"],
+            "description": "Page to navigate to"
+          },
+          "category": {
+            "type": "string",
+            "description": "Product category (optional)"
+          }
+        },
+        "required": ["page"]
+      }
+    },
+    {
+      "name": "search_products",
+      "description": "Search for products",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query"
+          },
+          "filters": {
+            "type": "object",
+            "properties": {
+              "color": {"type": "string"},
+              "max_price": {"type": "number"},
+              "min_price": {"type": "number"}
+            }
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "add_to_cart",
+      "description": "Add a product to the shopping cart",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "description": "ID of the product to add"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Quantity to add"
+          }
+        },
+        "required": ["product_id"]
+      }
+    }
+  ]
+} 
