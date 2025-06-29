@@ -12,6 +12,7 @@ Trying to create an AI agent that can control ecommerce UIs through natural lang
 - LangGraph for workflow management  
 - OpenAI for the LLM
 - FastAPI for the backend
+- UV for Python package management
 
 ## Status
 
@@ -19,27 +20,39 @@ Trying to create an AI agent that can control ecommerce UIs through natural lang
 ✅ OpenAI chat completion working  
 ✅ Tool loading from JSON configuration  
 ✅ A2A protocol server with streaming responses  
+✅ Proper UV project setup with dependencies  
 🚧 Working on LangGraph workflow integration  
 
 ## Setup
 
-1. Install dependencies:
+1. Install UV (if you haven't already):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2. Clone and set up the project:
+```bash
+git clone <your-repo>
+cd ecommerce-backend
+```
+
+3. Install dependencies (uv handles virtual env automatically):
 ```bash
 uv sync
 ```
 
-2. Set up environment:
+4. Set up environment:
 ```bash
 cp .env.example .env
 # Edit .env with your OpenAI API key
 ```
 
-3. Run the app:
+5. Run the app:
 ```bash
 uv run python app.py
 ```
 
-4. Test it:
+6. Test it:
 ```bash
 # Health check
 curl http://localhost:8000/health
@@ -56,6 +69,25 @@ curl -X POST http://localhost:8000/chat \
 curl -X POST http://localhost:8000/a2a/message/stream \
   -H "Content-Type: application/json" \
   -d '{"message": "find me some red bags", "context_id": "test123"}'
+```
+
+## Development Commands
+
+```bash
+# Run the app
+uv run python app.py
+
+# Install new dependencies
+uv add package_name
+
+# Run with different Python versions
+uv run --python 3.11 python app.py
+
+# Run tests (when we add them)
+uv run pytest
+
+# Check dependencies
+uv tree
 ```
 
 ## Current Endpoints
@@ -104,7 +136,9 @@ ecommerce-backend/
 ├── agent.py            # Main agent logic
 ├── a2a_server.py       # A2A protocol server
 ├── tools.json          # Tool configurations
-├── pyproject.toml      # Dependencies
+├── pyproject.toml      # UV project configuration
+├── uv.lock             # UV dependency lock file
+├── .venv/              # Virtual environment (created by uv)
 └── README.md           # This file
 ```
 
@@ -112,4 +146,4 @@ ecommerce-backend/
 
 This is part of a larger ecommerce project. The frontend will consume the A2A streams to update the UI in real-time.
 
-The A2A protocol implementation follows the standard for agent-to-agent communication. Still experimenting with the best architecture as this grows. 
+The A2A protocol implementation follows the standard for agent-to-agent communication. Using UV for fast, reliable Python package management - much better than pip/venv! 
