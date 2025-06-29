@@ -2,12 +2,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
+from agent import EcommerceAgent
 
 load_dotenv()
 
-# Initialize OpenAI client
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize the ecommerce agent
+agent = EcommerceAgent()
 
 app = FastAPI(
     title="Ecommerce Agent",
@@ -29,29 +29,29 @@ async def health():
     api_key = os.getenv("OPENAI_API_KEY")
     return {
         "status": "ok",
-        "openai_configured": bool(api_key and api_key != "your_api_key_here")
+        "openai_configured": bool(api_key and api_key != "your_api_key_here"),
+        "tools_loaded": len(agent.tools)
     }
 
 @app.post("/chat")
 async def chat(msg: ChatMessage):
     try:
-        # Create a simple chat completion
-        response = openai_client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are an AI assistant for an ecommerce website. Help users find products and navigate the site."},
-                {"role": "user", "content": msg.message}
-            ],
-            max_tokens=150
-        )
+        # Use the agent to process the message
+        result = agent.process_message(msg.message)
         
         return {
-            "response": response.choices[0].message.content,
+            "response": result["response"],
             "user_id": msg.user_id,
-            "model": "gpt-3.5-turbo"
+            "status": result["status"],
+            "tools_available": result.get("tools_available", 0)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
+
+@app.get("/tools")
+async def get_tools():
+    """Get available tools"""
+    return {"tools": agent.tools}
 
 if __name__ == "__main__":
     import uvicorn
