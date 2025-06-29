@@ -28,6 +28,20 @@ dev = [
     "ruff>=0.1.0",
 ]
 
+[project.scripts]
+ecommerce-agent = "app:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+exclude = [
+    "/.git",
+    "/.venv",
+    "__pycache__",
+    "*.pyc",
+    ".env*",
+    "TODO.md"
+]
+
 [tool.ruff]
 line-length = 88
 target-version = "py311" 
