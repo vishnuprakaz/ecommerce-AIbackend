@@ -8,7 +8,7 @@
 ## 🚀 Sprint 1 - Core Functionality  
 - [x] ✅ Implement basic tool handlers (navigate, search_products, add_to_cart)
 - [x] ✅ Add request validation and error responses
-- [ ] Create simple HTML test client for streaming endpoint
+- [x] ✅ Create simple HTML test client for streaming endpoint
 - [ ] Add basic logging (replace print statements)
 
 ## 🧠 Sprint 2 - Smart Agent
@@ -50,9 +50,10 @@
 - Added tool testing endpoint at `/tools/execute` for development
 - A2A error handling is now comprehensive with proper validation and error responses
 - Regular endpoints now have proper validation too - much more robust
+- HTML test client at `/test` makes development much easier!
 
 ## 🎯 Current Focus
-Working on **Sprint 1** - creating HTML test client for streaming endpoint next.
+Almost done with **Sprint 1**! Just need to clean up logging, then moving to **Sprint 2** for LangGraph integration.
 
 ---
 *Last updated: Working session* 

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, validator, Field
 import os
 from dotenv import load_dotenv
@@ -49,7 +50,20 @@ class ToolRequest(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"message": "Ecommerce Agent API", "a2a_discovery": "/.well-known/agent.json"}
+    return {
+        "message": "Ecommerce Agent API", 
+        "a2a_discovery": "/.well-known/agent.json",
+        "test_client": "/test"
+    }
+
+@app.get("/test", response_class=HTMLResponse)
+async def test_client():
+    """Serve the HTML test client for streaming"""
+    try:
+        with open("test_client.html", "r") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Test client not found")
 
 @app.get("/health")
 async def health():

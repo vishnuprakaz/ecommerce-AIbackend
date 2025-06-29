@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ecommerce Agent - Stream Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #output {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            min-height: 200px;
+            border: 1px solid #e9ecef;
+        }
+        .event {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .event-start { background: #d4edda; border-left: 4px solid #28a745; }
+        .event-thinking { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .event-text { background: #e7f3ff; border-left: 4px solid #007bff; }
+        .event-complete { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .event-error { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .response-text {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            line-height: 1.6;
+        }
+        .status {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Ecommerce Agent - Stream Test Client</h1>
+        
+        <div class="input-group">
+            <label for="message">Message:</label>
+            <textarea id="message" rows="3" placeholder="Type your message here (e.g., 'show me red handbags under $100')">show me red handbags under $100</textarea>
+        </div>
+        
+        <div class="input-group">
+            <label for="contextId">Context ID (optional):</label>
+            <input type="text" id="contextId" placeholder="e.g., test-session-123">
+        </div>
+        
+        <button onclick="sendMessage()">Send Message</button>
+        <button onclick="clearOutput()">Clear Output</button>
+        
+        <div id="output"></div>
+        
+        <div class="status">
+            Status: <span id="status">Ready</span>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let responseText = '';
+
+        function updateStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        function addEvent(type, data) {
+            const output = document.getElementById('output');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event event-${type}`;
+            eventDiv.textContent = `[${type.toUpperCase()}] ${JSON.stringify(data)}`;
+            output.appendChild(eventDiv);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function updateResponseText(chunk) {
+            responseText += chunk;
+            
+            // Update or create response text display
+            let responseDiv = document.getElementById('response-text');
+            if (!responseDiv) {
+                responseDiv = document.createElement('div');
+                responseDiv.id = 'response-text';
+                responseDiv.className = 'response-text';
+                responseDiv.innerHTML = '<strong>Agent Response:</strong><br>';
+                document.getElementById('output').appendChild(responseDiv);
+            }
+            
+            // Update the text content
+            responseDiv.innerHTML = `<strong>Agent Response:</strong><br>${responseText}`;
+        }
+
+        function sendMessage() {
+            const message = document.getElementById('message').value.trim();
+            const contextId = document.getElementById('contextId').value.trim();
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+
+            // Close any existing connection
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            // Clear previous response
+            responseText = '';
+            document.getElementById('output').innerHTML = '';
+            
+            updateStatus('Connecting...');
+
+            // Prepare request data
+            const requestData = {
+                message: message,
+                stream: true
+            };
+            
+            if (contextId) {
+                requestData.context_id = contextId;
+            }
+
+            // Start the stream
+            fetch('/a2a/message/stream', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                updateStatus('Streaming...');
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                
+                function readStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            updateStatus('Stream completed');
+                            return;
+                        }
+                        
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    handleStreamEvent(data);
+                                } catch (e) {
+                                    console.error('Error parsing SSE data:', e, line);
+                                }
+                            }
+                        }
+                        
+                        readStream();
+                    }).catch(error => {
+                        console.error('Stream reading error:', error);
+                        updateStatus(`Error: ${error.message}`);
+                        addEvent('error', { error: error.message });
+                    });
+                }
+                
+                readStream();
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                updateStatus(`Error: ${error.message}`);
+                addEvent('error', { error: error.message });
+            });
+        }
+
+        function handleStreamEvent(data) {
+            const eventType = data.event;
+            
+            switch (eventType) {
+                case 'start':
+                    addEvent('start', data);
+                    break;
+                case 'thinking':
+                    addEvent('thinking', data);
+                    break;
+                case 'text_chunk':
+                    updateResponseText(data.content);
+                    break;
+                case 'complete':
+                    addEvent('complete', data);
+                    updateStatus('Complete');
+                    break;
+                case 'error':
+                    addEvent('error', data);
+                    updateStatus('Error occurred');
+                    break;
+                default:
+                    addEvent('unknown', data);
+            }
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+            responseText = '';
+            updateStatus('Ready');
+        }
+
+        // Generate a random context ID on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const randomId = 'test-' + Math.random().toString(36).substr(2, 9);
+            document.getElementById('contextId').value = randomId;
+        });
+    </script>
+</body>
+</html> 
