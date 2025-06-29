@@ -3,7 +3,7 @@
 ## 🔥 Critical Issues - SPRINT 2 FOCUS
 - [x] ✅ **Code Restructure** - Reorganize into proper modules (agents/, tools/, a2a/, server/)
 - [x] ✅ **Fix Pydantic Deprecation** - Migrate from V1 `@validator` to V2 `@field_validator`
-- [ ] **Fix A2A Async Streaming** - Resolve async generator issue in streaming responses
+- [x] ✅ **Fix A2A Async Streaming** - Resolve async generator issue in streaming responses
 - [ ] **LangGraph Integration** - Add proper agent workflows with function calling
 - [ ] **Tool Parameter Validation** - Enhanced validation with proper schemas
 
@@ -48,8 +48,8 @@
 - [ ] Demo frontend app
 
 ## 🐛 Known Issues
-- A2A streaming has async generator issue - needs fixing
-- Need to clean up old files after restructuring
+- ~~A2A streaming has async generator issue~~ ✅ Fixed - streaming now works perfectly!
+- ~~Need to clean up old files after restructuring~~ ✅ Done - old files removed
 - A2A streaming chunks might be too fast/slow - need testing
 
 ## 📝 Development Notes

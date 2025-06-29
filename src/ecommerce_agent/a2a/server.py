@@ -34,13 +34,16 @@ class A2AServer:
             if not self.agent.is_openai_available():
                 # Mock streaming for development
                 mock_response = f"🤖 Mock A2A response to: '{message.message}' (OpenAI not configured)"
-                await self._stream_text_chunks(mock_response, message.context_id)
+                async for chunk in self._stream_text_chunks(mock_response, message.context_id):
+                    yield chunk
             else:
                 # Real OpenAI streaming
-                await self._stream_openai_response(message)
+                async for chunk in self._stream_openai_response(message):
+                    yield chunk
             
             # Complete event
-            yield f"data: {json.dumps({'event': 'complete', 'context_id': message.context_id, 'status': 'success', 'tools_available': len(self.agent.tools), 'message_length': len(message.message.split()), 'response_length': 0})}\n\n"
+            response_length = len(message.message.split()) * 8  # Rough estimate
+            yield f"data: {json.dumps({'event': 'complete', 'context_id': message.context_id, 'status': 'success', 'tools_available': len(self.agent.tools), 'message_length': len(message.message.split()), 'response_length': response_length})}\n\n"
             
         except Exception as e:
             logger.error(f"Error in A2A streaming: {e}")
@@ -52,8 +55,9 @@ class A2AServer:
             }
             yield f"data: {json.dumps(error_data)}\n\n"
     
-    async def _stream_text_chunks(self, text: str, context_id: str):
+    async def _stream_text_chunks(self, text: str, context_id: str) -> AsyncGenerator[str, None]:
         """Stream text as individual word chunks"""
+        import asyncio
         words = text.split()
         for i, word in enumerate(words):
             chunk_data = {
@@ -64,10 +68,9 @@ class A2AServer:
             }
             yield f"data: {json.dumps(chunk_data)}\n\n"
             # Small delay to simulate streaming
-            import asyncio
             await asyncio.sleep(0.05)
     
-    async def _stream_openai_response(self, message: A2AMessage):
+    async def _stream_openai_response(self, message: A2AMessage) -> AsyncGenerator[str, None]:
         """Stream response from OpenAI with proper chunking"""
         try:
             # Create system prompt with tool descriptions
