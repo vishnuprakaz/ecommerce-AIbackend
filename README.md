@@ -15,11 +15,43 @@ Trying to create an AI agent that can control ecommerce UIs through natural lang
 
 ## Status
 
-🚧 Work in progress - just getting started
+�� Work in progress - basic FastAPI app is working
 
 ## Setup
 
-Will add proper setup instructions as I build this out.
+1. Install dependencies:
+```bash
+uv sync
+```
+
+2. Set up environment:
+```bash
+cp .env.example .env
+# Edit .env with your OpenAI API key
+```
+
+3. Run the app:
+```bash
+uv run python app.py
+```
+
+4. Test it:
+```bash
+curl http://localhost:8000/health
+```
+
+## Current Endpoints
+
+- `GET /` - Root endpoint
+- `GET /health` - Health check
+- `POST /chat` - Basic chat (placeholder for now)
+
+## Next Steps
+
+- [ ] Add OpenAI integration
+- [ ] Implement A2A protocol
+- [ ] Add LangGraph workflows
+- [ ] Create tool handlers for ecommerce actions
 
 ## Notes
 
