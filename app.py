@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
+
+# Initialize OpenAI client
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(
     title="Ecommerce Agent",
@@ -21,15 +25,33 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    # Check if OpenAI is configured
+    api_key = os.getenv("OPENAI_API_KEY")
+    return {
+        "status": "ok",
+        "openai_configured": bool(api_key and api_key != "your_api_key_here")
+    }
 
 @app.post("/chat")
 async def chat(msg: ChatMessage):
-    # TODO: Add actual AI processing here
-    return {
-        "response": f"You said: {msg.message}",
-        "user_id": msg.user_id
-    }
+    try:
+        # Create a simple chat completion
+        response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an AI assistant for an ecommerce website. Help users find products and navigate the site."},
+                {"role": "user", "content": msg.message}
+            ],
+            max_tokens=150
+        )
+        
+        return {
+            "response": response.choices[0].message.content,
+            "user_id": msg.user_id,
+            "model": "gpt-3.5-turbo"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
