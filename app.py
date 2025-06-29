@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from agent import EcommerceAgent
 from a2a_server import add_a2a_routes
+from typing import Dict, Any
 
 load_dotenv()
 
@@ -22,6 +23,10 @@ add_a2a_routes(app, agent)
 class ChatMessage(BaseModel):
     message: str
     user_id: str = "anonymous"
+
+class ToolRequest(BaseModel):
+    tool_name: str
+    parameters: Dict[str, Any] = {}
 
 @app.get("/")
 async def root():
@@ -59,6 +64,15 @@ async def chat(msg: ChatMessage):
 async def get_tools():
     """Get available tools"""
     return {"tools": agent.tools}
+
+@app.post("/tools/execute")
+async def execute_tool(request: ToolRequest):
+    """Execute a specific tool for testing"""
+    try:
+        result = agent.execute_tool(request.tool_name, request.parameters)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error executing tool: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

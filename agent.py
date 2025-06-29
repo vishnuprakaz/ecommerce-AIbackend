@@ -1,20 +1,34 @@
 import json
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from openai import OpenAI
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+import uuid
+from datetime import datetime
 
 load_dotenv()
 
 class EcommerceAgent:
     def __init__(self):
-        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.llm = ChatOpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            model="gpt-3.5-turbo"
-        )
         self.tools = self.load_tools()
+        # Initialize OpenAI client only if API key is available
+        self.openai_client = None
+        self.llm = None
+        self._init_openai()
+    
+    def _init_openai(self):
+        """Initialize OpenAI clients if API key is available"""
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key and api_key != "your_api_key_here":
+            try:
+                self.openai_client = OpenAI(api_key=api_key)
+                self.llm = ChatOpenAI(api_key=api_key, model="gpt-3.5-turbo")
+                print("✅ OpenAI client initialized successfully")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize OpenAI client: {e}")
+        else:
+            print("⚠️ OpenAI API key not found - agent will work in mock mode")
     
     def load_tools(self) -> List[Dict[str, Any]]:
         """Load tools from configuration file"""
@@ -26,9 +40,19 @@ class EcommerceAgent:
             print("Warning: tools.json not found")
             return []
     
+    def is_openai_available(self) -> bool:
+        """Check if OpenAI client is available"""
+        return self.openai_client is not None
+    
     def process_message(self, message: str) -> Dict[str, Any]:
         """Process a user message and determine actions"""
-        # Simple tool calling for now
+        if not self.is_openai_available():
+            return {
+                "response": f"🤖 Mock response to: '{message}' (OpenAI not configured - set OPENAI_API_KEY)",
+                "tools_available": len(self.tools),
+                "status": "mock_mode"
+            }
+        
         try:
             # Create a system prompt that includes tool descriptions
             tool_descriptions = "\n".join([
@@ -65,12 +89,150 @@ If you need to use a tool, mention what action you would take."""
 
     def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool with given parameters"""
-        # For now, just return mock responses
-        if tool_name == "navigate":
-            return {"action": "navigate", "page": parameters.get("page"), "success": True}
-        elif tool_name == "search_products":
-            return {"action": "search", "query": parameters.get("query"), "results": []}
-        elif tool_name == "add_to_cart":
-            return {"action": "add_to_cart", "product_id": parameters.get("product_id"), "success": True}
-        else:
-            return {"error": f"Unknown tool: {tool_name}"} 
+        timestamp = datetime.now().isoformat()
+        request_id = str(uuid.uuid4())[:8]
+        
+        try:
+            if tool_name == "navigate":
+                return self._handle_navigation(parameters, request_id, timestamp)
+            elif tool_name == "search_products":
+                return self._handle_product_search(parameters, request_id, timestamp)
+            elif tool_name == "add_to_cart":
+                return self._handle_add_to_cart(parameters, request_id, timestamp)
+            else:
+                return {
+                    "error": f"Unknown tool: {tool_name}",
+                    "request_id": request_id,
+                    "timestamp": timestamp
+                }
+        except Exception as e:
+            return {
+                "error": f"Tool execution failed: {str(e)}",
+                "tool": tool_name,
+                "request_id": request_id,
+                "timestamp": timestamp
+            }
+    
+    def _handle_navigation(self, params: Dict[str, Any], request_id: str, timestamp: str) -> Dict[str, Any]:
+        """Handle navigation tool execution"""
+        page = params.get("page")
+        category = params.get("category")
+        
+        if not page:
+            return {
+                "error": "Page parameter is required",
+                "request_id": request_id,
+                "timestamp": timestamp
+            }
+        
+        # Build navigation response
+        nav_response = {
+            "action": "navigate",
+            "target_page": page,
+            "success": True,
+            "ui_updates": [
+                {"type": "route_change", "path": f"/{page}"},
+                {"type": "update_breadcrumb", "path": [{"name": "Home", "url": "/"}, {"name": page.title(), "url": f"/{page}"}]}
+            ],
+            "request_id": request_id,
+            "timestamp": timestamp
+        }
+        
+        # Add category-specific updates
+        if category and page == "products":
+            nav_response["ui_updates"].extend([
+                {"type": "set_category_filter", "category": category},
+                {"type": "update_page_title", "title": f"{category.title()} Products"}
+            ])
+            nav_response["category"] = category
+        
+        return nav_response
+    
+    def _handle_product_search(self, params: Dict[str, Any], request_id: str, timestamp: str) -> Dict[str, Any]:
+        """Handle product search tool execution"""
+        query = params.get("query")
+        filters = params.get("filters", {})
+        
+        if not query:
+            return {
+                "error": "Query parameter is required",
+                "request_id": request_id,
+                "timestamp": timestamp
+            }
+        
+        # Simulate search results (in real app, this would query a database)
+        mock_products = [
+            {
+                "id": "prod_001",
+                "name": f"Red Leather Handbag",
+                "price": 89.99,
+                "image": "/images/red-handbag-1.jpg",
+                "rating": 4.5,
+                "in_stock": True
+            },
+            {
+                "id": "prod_002", 
+                "name": f"Crimson Tote Bag",
+                "price": 65.00,
+                "image": "/images/red-tote-1.jpg",
+                "rating": 4.2,
+                "in_stock": True
+            }
+        ]
+        
+        # Apply filters
+        filtered_products = mock_products
+        if filters.get("max_price"):
+            filtered_products = [p for p in filtered_products if p["price"] <= filters["max_price"]]
+        if filters.get("min_price"):
+            filtered_products = [p for p in filtered_products if p["price"] >= filters["min_price"]]
+        
+        return {
+            "action": "search_products",
+            "query": query,
+            "filters": filters,
+            "results": filtered_products,
+            "result_count": len(filtered_products),
+            "ui_updates": [
+                {"type": "update_search_results", "products": filtered_products},
+                {"type": "update_result_count", "count": len(filtered_products)},
+                {"type": "highlight_search_term", "term": query}
+            ],
+            "success": True,
+            "request_id": request_id,
+            "timestamp": timestamp
+        }
+    
+    def _handle_add_to_cart(self, params: Dict[str, Any], request_id: str, timestamp: str) -> Dict[str, Any]:
+        """Handle add to cart tool execution"""
+        product_id = params.get("product_id")
+        quantity = params.get("quantity", 1)
+        
+        if not product_id:
+            return {
+                "error": "Product ID is required",
+                "request_id": request_id,
+                "timestamp": timestamp
+            }
+        
+        # Simulate adding to cart
+        cart_item = {
+            "product_id": product_id,
+            "quantity": quantity,
+            "added_at": timestamp,
+            "cart_id": f"cart_{request_id}"
+        }
+        
+        return {
+            "action": "add_to_cart",
+            "cart_item": cart_item,
+            "success": True,
+            "ui_updates": [
+                {"type": "show_cart_notification", "message": f"Added {quantity} item(s) to cart"},
+                {"type": "update_cart_badge", "count": f"+{quantity}"},
+                {"type": "animate_cart_icon"},
+                {"type": "show_cart_sidebar", "auto_hide_after": 3000}
+            ],
+            "request_id": request_id,
+            "timestamp": timestamp
+        } 

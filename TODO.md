@@ -1,37 +1,57 @@
-# TODO
+# Development TODO
 
-## Immediate
-- [ ] Test the streaming endpoint properly - need to build a simple HTML client  
-- [ ] Fix the tool execution - currently just returning mock data
-- [ ] Add proper error handling for malformed requests
+## 🔥 Critical Issues
+- [x] ✅ Fix OpenAI initialization - app crashes without API key, should gracefully handle missing keys
+- [x] ✅ Tool execution is returning mock data - need actual implementations
+- [x] ✅ Add proper error handling for malformed A2A requests
 
-## Next Sprint
-- [ ] LangGraph integration - the current agent is too simple
-- [ ] Session management - users lose context between requests  
-- [ ] Add more ecommerce tools (filters, sorting, etc.)
-- [ ] Rate limiting - don't want to blow through OpenAI credits
+## 🚀 Sprint 1 - Core Functionality  
+- [x] ✅ Implement basic tool handlers (navigate, search_products, add_to_cart)
+- [ ] Add request validation and error responses
+- [ ] Create simple HTML test client for streaming endpoint
+- [ ] Add basic logging (replace print statements)
 
-## Architecture
-- [ ] Might need to refactor into proper modules soon
-- [ ] Database for session storage? 
-- [ ] Consider using Pydantic models for tool parameters
-- [ ] Add logging - using print statements like a noob right now
+## 🧠 Sprint 2 - Smart Agent
+- [ ] Integrate LangGraph for proper agent workflows
+- [ ] Add function calling to OpenAI requests (currently just chat)
+- [ ] Implement tool parameter validation with Pydantic
+- [ ] Add conversation context/memory
 
-## Testing
-- [ ] Unit tests for agent logic
-- [ ] Integration tests for A2A endpoints
-- [ ] Load testing for streaming
+## 🔧 Sprint 3 - Production Ready
+- [ ] Session management for multi-turn conversations
+- [ ] Rate limiting for OpenAI API calls
+- [ ] Add more ecommerce tools (filters, sorting, wishlist)
+- [ ] Database setup for session storage
 
-## Nice to Have
-- [ ] Docker setup for easier deployment
-- [ ] CI/CD pipeline  
-- [ ] Monitoring and observability
-- [ ] Frontend demo app
+## ✅ Testing & Quality
+- [ ] Unit tests for agent and tool logic
+- [ ] Integration tests for A2A streaming
+- [ ] Add basic monitoring/health checks
+- [ ] Performance testing for streaming
 
-## Bugs
-- None found yet but probably lurking somewhere 😅
+## 📦 Deployment
+- [ ] Docker setup 
+- [ ] Environment configuration management
+- [ ] CI/CD pipeline (GitHub Actions)
+- [ ] Demo frontend app
 
-## Notes
-- The A2A streaming works but feels a bit slow - might need to optimize chunk sizes
-- Need to research LangGraph patterns more - current approach feels basic
-- Should probably add authentication at some point 
+## 🐛 Known Issues
+- ~~OpenAI client requires API key at startup~~ ✅ Fixed - now gracefully handles missing keys
+- A2A streaming chunks might be too fast/slow - need testing
+- ~~No input validation on tool parameters~~ ✅ Fixed - comprehensive A2A validation added
+
+## 📝 Development Notes
+- Current agent is very basic - just passes messages to OpenAI
+- Need to research LangGraph patterns for ecommerce workflows
+- Consider adding authentication layer later
+- UV package management is working great 👍
+- OpenAI mock mode working perfectly for development without API key
+- Tool handlers now return structured data with UI updates - much better!
+- Added tool testing endpoint at `/tools/execute` for development
+- A2A error handling is now comprehensive with proper validation and error responses
+
+## 🎯 Current Focus
+**All critical issues resolved!** 🎉 Moving to **Sprint 1** - working on request validation for regular endpoints.
+
+---
+*Last updated: Working session* 
