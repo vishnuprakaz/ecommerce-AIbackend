@@ -7,7 +7,7 @@
 
 ## 🚀 Sprint 1 - Core Functionality  
 - [x] ✅ Implement basic tool handlers (navigate, search_products, add_to_cart)
-- [ ] Add request validation and error responses
+- [x] ✅ Add request validation and error responses
 - [ ] Create simple HTML test client for streaming endpoint
 - [ ] Add basic logging (replace print statements)
 
@@ -49,9 +49,10 @@
 - Tool handlers now return structured data with UI updates - much better!
 - Added tool testing endpoint at `/tools/execute` for development
 - A2A error handling is now comprehensive with proper validation and error responses
+- Regular endpoints now have proper validation too - much more robust
 
 ## 🎯 Current Focus
-**All critical issues resolved!** 🎉 Moving to **Sprint 1** - working on request validation for regular endpoints.
+Working on **Sprint 1** - creating HTML test client for streaming endpoint next.
 
 ---
 *Last updated: Working session* 
