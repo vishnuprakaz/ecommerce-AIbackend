@@ -20,101 +20,25 @@ class A2AServer:
         self.agent = agent
     
     async def stream_response(self, message: A2AMessage) -> AsyncGenerator[str, None]:
-        """Stream A2A response with SSE format"""
+        """Stream A2A response with SSE format using LangGraph workflow"""
         try:
-            start_time = time.time()
+            logger.info(f"A2A stream request from user {message.user_id}: {message.message[:50]}...")
             
-            # Start event
-            yield f"data: {json.dumps({'event': 'start', 'context_id': message.context_id, 'timestamp': start_time})}\n\n"
-            
-            # Thinking event
-            yield f"data: {json.dumps({'event': 'thinking', 'content': 'Processing your request...', 'context_id': message.context_id})}\n\n"
-            
-            # Get response from agent
-            if not self.agent.is_openai_available():
-                # Mock streaming for development
-                mock_response = f"🤖 Mock A2A response to: '{message.message}' (OpenAI not configured)"
-                async for chunk in self._stream_text_chunks(mock_response, message.context_id):
-                    yield chunk
-            else:
-                # Real OpenAI streaming
-                async for chunk in self._stream_openai_response(message):
-                    yield chunk
-            
-            # Complete event
-            response_length = len(message.message.split()) * 8  # Rough estimate
-            yield f"data: {json.dumps({'event': 'complete', 'context_id': message.context_id, 'status': 'success', 'tools_available': len(self.agent.tools), 'message_length': len(message.message.split()), 'response_length': response_length})}\n\n"
-            
+            # Use the agent's workflow streaming
+            async for chunk in self.agent.stream_workflow(message.message, message.context_id):
+                yield chunk
+                
         except Exception as e:
             logger.error(f"Error in A2A streaming: {e}")
             error_data = {
-                'event': 'error', 
+                'event': 'workflow_error', 
                 'error': str(e), 
                 'context_id': message.context_id,
                 'timestamp': time.time()
             }
             yield f"data: {json.dumps(error_data)}\n\n"
     
-    async def _stream_text_chunks(self, text: str, context_id: str) -> AsyncGenerator[str, None]:
-        """Stream text as individual word chunks"""
-        import asyncio
-        words = text.split()
-        for i, word in enumerate(words):
-            chunk_data = {
-                'event': 'text_chunk',
-                'content': word + (' ' if i < len(words) - 1 else ''),
-                'chunk_id': i,
-                'context_id': context_id
-            }
-            yield f"data: {json.dumps(chunk_data)}\n\n"
-            # Small delay to simulate streaming
-            await asyncio.sleep(0.05)
-    
-    async def _stream_openai_response(self, message: A2AMessage) -> AsyncGenerator[str, None]:
-        """Stream response from OpenAI with proper chunking"""
-        try:
-            # Create system prompt with tool descriptions
-            tool_descriptions = "\n".join([
-                f"- {tool['name']}: {tool['description']}" 
-                for tool in self.agent.tools
-            ])
-            
-            system_prompt = f"""You are an AI assistant for an ecommerce website. 
-You can help users with these actions:
-{tool_descriptions}
 
-When a user asks for something, determine if you need to use any tools and respond accordingly.
-Provide helpful, conversational responses about ecommerce tasks."""
-
-            response = self.agent.openai_client.chat.completions.create(
-                model=self.agent.config.openai_model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": message.message}
-                ],
-                max_tokens=500,
-                stream=True
-            )
-            
-            chunk_id = 0
-            for chunk in response:
-                if chunk.choices[0].delta.content is not None:
-                    content = chunk.choices[0].delta.content
-                    chunk_data = {
-                        'event': 'text_chunk',
-                        'content': content,
-                        'chunk_id': chunk_id,
-                        'context_id': message.context_id
-                    }
-                    yield f"data: {json.dumps(chunk_data)}\n\n"
-                    chunk_id += 1
-                    
-        except Exception as e:
-            logger.error(f"Error streaming OpenAI response: {e}")
-            # Fallback to mock response
-            mock_response = f"I'd be happy to help you with '{message.message}'. Let me search for relevant products and information."
-            async for chunk in self._stream_text_chunks(mock_response, message.context_id):
-                yield chunk
 
 
 def add_a2a_routes(app: FastAPI, agent):

@@ -4,13 +4,14 @@ Core ecommerce agent implementation
 
 import json
 import uuid
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, AsyncGenerator
 from datetime import datetime
 import logging
 from openai import OpenAI
 from langchain_openai import ChatOpenAI
 
 from .config import get_config
+from .workflow import EcommerceWorkflow
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class EcommerceAgent:
         self.tools = self.load_tools()
         self.openai_client = None
         self.llm = None
+        self.workflow = None
         self._init_openai()
     
     def _init_openai(self):
@@ -32,7 +34,10 @@ class EcommerceAgent:
             try:
                 self.openai_client = OpenAI(api_key=self.config.openai_api_key)
                 self.llm = ChatOpenAI(api_key=self.config.openai_api_key, model=self.config.openai_model)
-                logger.info("OpenAI client initialized successfully")
+                
+                # Initialize LangGraph workflow
+                self.workflow = EcommerceWorkflow(self)
+                logger.info("OpenAI client and LangGraph workflow initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize OpenAI client: {e}")
         else:
@@ -104,6 +109,21 @@ If you need to use a tool, mention what action you would take."""
                 "response": f"Sorry, I encountered an error: {str(e)}",
                 "status": "error"
             }
+
+    async def stream_workflow(self, user_query: str, context_id: str = None) -> AsyncGenerator[str, None]:
+        """Stream the LangGraph workflow execution"""
+        if self.workflow is None:
+            # Fallback to mock mode
+            context_id = context_id or str(uuid.uuid4())[:8]
+            yield f"data: {json.dumps({'event': 'workflow_start', 'context_id': context_id, 'query': user_query, 'mode': 'mock'})}\n\n"
+            yield f"data: {json.dumps({'event': 'agent_thinking', 'iteration': 1, 'context_id': context_id})}\n\n"
+            yield f"data: {json.dumps({'event': 'partial_response', 'content': f'🤖 Mock workflow response to: {user_query} (LangGraph not available)', 'iteration': 1, 'context_id': context_id})}\n\n"
+            yield f"data: {json.dumps({'event': 'workflow_complete', 'iterations': 1, 'tool_calls_made': 0, 'context_id': context_id})}\n\n"
+            return
+        
+        # Use the LangGraph workflow
+        async for chunk in self.workflow.stream_workflow(user_query, context_id):
+            yield chunk
 
     def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool with given parameters"""

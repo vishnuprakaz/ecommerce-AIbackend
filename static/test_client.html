@@ -74,6 +74,15 @@
             border-radius: 4px;
             font-family: monospace;
         }
+        .event-workflow_start { background: #d4edda; border-left: 4px solid #28a745; }
+        .event-agent_thinking { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .event-tool_calls_planned { background: #e2e3e5; border-left: 4px solid #6c757d; }
+        .event-partial_response { background: #e7f3ff; border-left: 4px solid #007bff; }
+        .event-tools_executing { background: #ffeaa7; border-left: 4px solid #fd79a8; }
+        .event-tool_results { background: #a8e6cf; border-left: 4px solid #00b894; }
+        .event-final_response { background: #ddd6fe; border-left: 4px solid #8b5cf6; }
+        .event-workflow_complete { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .event-workflow_error { background: #f8d7da; border-left: 4px solid #dc3545; }
         .event-start { background: #d4edda; border-left: 4px solid #28a745; }
         .event-thinking { background: #fff3cd; border-left: 4px solid #ffc107; }
         .event-text { background: #e7f3ff; border-left: 4px solid #007bff; }
@@ -100,7 +109,17 @@
         
         <div class="input-group">
             <label for="message">Message:</label>
-            <textarea id="message" rows="3" placeholder="Type your message here (e.g., 'show me red handbags under $100')">show me red handbags under $100</textarea>
+            <textarea id="message" rows="3" placeholder="Type your message here">find red handbags under $100</textarea>
+        </div>
+        
+        <div class="input-group">
+            <label>Quick Test Messages:</label>
+            <div style="margin-top: 5px;">
+                <button type="button" onclick="setMessage('find red handbags under $100')" style="margin: 2px; background: #28a745;">🛍️ Search Products</button>
+                <button type="button" onclick="setMessage('navigate to electronics section')" style="margin: 2px; background: #17a2b8;">🧭 Navigate</button>
+                <button type="button" onclick="setMessage('add product LAP001 to my cart')" style="margin: 2px; background: #fd7e14;">🛒 Add to Cart</button>
+                <button type="button" onclick="setMessage('show me blue laptops under $1000')" style="margin: 2px; background: #6f42c1;">🔍 Complex Query</button>
+            </div>
         </div>
         
         <div class="input-group">
@@ -242,6 +261,43 @@
             const eventType = data.event;
             
             switch (eventType) {
+                case 'workflow_start':
+                    addEvent('workflow_start', data);
+                    updateStatus('Starting workflow...');
+                    break;
+                case 'agent_thinking':
+                    addEvent('agent_thinking', data);
+                    updateStatus(`Agent thinking... (iteration ${data.iteration || 1})`);
+                    break;
+                case 'tool_calls_planned':
+                    addEvent('tool_calls_planned', data);
+                    updateStatus(`Planning to execute tools: ${data.tool_calls.join(', ')}`);
+                    break;
+                case 'partial_response':
+                    addEvent('partial_response', data);
+                    updateResponseText(data.content);
+                    break;
+                case 'tools_executing':
+                    addEvent('tools_executing', data);
+                    updateStatus('Executing tools...');
+                    break;
+                case 'tool_results':
+                    addEvent('tool_results', data);
+                    updateStatus(`Tool execution complete (${data.results} results)`);
+                    break;
+                case 'final_response':
+                    addEvent('final_response', data);
+                    updateResponseText(data.content);
+                    break;
+                case 'workflow_complete':
+                    addEvent('workflow_complete', data);
+                    updateStatus(`Workflow complete (${data.iterations} iterations, ${data.tool_calls_made} tool calls)`);
+                    break;
+                case 'workflow_error':
+                    addEvent('workflow_error', data);
+                    updateStatus('Workflow error occurred');
+                    break;
+                // Legacy events for backward compatibility
                 case 'start':
                     addEvent('start', data);
                     break;
@@ -268,6 +324,10 @@
             document.getElementById('output').innerHTML = '';
             responseText = '';
             updateStatus('Ready');
+        }
+
+        function setMessage(text) {
+            document.getElementById('message').value = text;
         }
 
         // Generate a random context ID on page load
