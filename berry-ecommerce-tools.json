@@ -1,0 +1,364 @@
+{
+  "tools": [
+    {
+      "name": "navigate",
+      "description": "Navigate to different sections of the Berry e-commerce site",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["go_to", "go_back", "go_forward"],
+            "description": "Navigation action to perform"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "home", 
+              "products", 
+              "product_details", 
+              "cart", 
+              "checkout", 
+              "dashboard", 
+              "customer_list", 
+              "orders",
+              "analytics",
+              "invoice"
+            ],
+            "description": "Target page to navigate to"
+          },
+          "params": {
+            "type": "object",
+            "properties": {
+              "category": {
+                "type": "string",
+                "description": "Product category (e.g., electronics, clothing, handbags)"
+              },
+              "product_id": {
+                "type": "string",
+                "description": "Specific product ID for product details"
+              },
+              "subcategory": {
+                "type": "string",
+                "description": "Product subcategory"
+              }
+            },
+            "description": "Additional navigation parameters"
+          }
+        },
+        "required": ["action", "target"]
+      }
+    },
+    {
+      "name": "manage_products",
+      "description": "Search, filter, sort and display products in Berry e-commerce",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["search", "filter", "sort", "clear_filters", "change_view"],
+            "description": "Product management action"
+          },
+          "search_query": {
+            "type": "string",
+            "description": "Search term for products"
+          },
+          "filters": {
+            "type": "object",
+            "properties": {
+              "category": {
+                "type": "string",
+                "description": "Product category filter"
+              },
+              "color": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Color filters"
+              },
+              "size": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Size filters"
+              },
+              "price_min": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Minimum price filter"
+              },
+              "price_max": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Maximum price filter"
+              },
+              "brand": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Brand filters"
+              },
+              "rating": {
+                "type": "number",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Minimum rating filter"
+              },
+              "in_stock": {
+                "type": "boolean",
+                "description": "Filter for in-stock products only"
+              }
+            },
+            "description": "Filters to apply to products"
+          },
+          "sort": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string",
+                "enum": ["price", "rating", "name", "newest", "popularity"],
+                "description": "Field to sort by"
+              },
+              "order": {
+                "type": "string",
+                "enum": ["asc", "desc"],
+                "description": "Sort order"
+              }
+            },
+            "description": "Sort options for products"
+          },
+          "view_type": {
+            "type": "string",
+            "enum": ["grid", "list"],
+            "description": "Product display view type"
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "manage_cart",
+      "description": "Handle shopping cart operations in Berry e-commerce",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["add", "remove", "update", "clear", "view", "apply_coupon", "remove_coupon"],
+            "description": "Cart action to perform"
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Product ID for cart operations"
+          },
+          "quantity": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Quantity of product"
+          },
+          "variant": {
+            "type": "object",
+            "properties": {
+              "color": {"type": "string"},
+              "size": {"type": "string"},
+              "model": {"type": "string"},
+              "storage": {"type": "string"}
+            },
+            "description": "Product variant details"
+          },
+          "coupon_code": {
+            "type": "string",
+            "description": "Discount coupon code"
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "control_ui",
+      "description": "Control Berry UI components and interactions",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "show_modal", 
+              "hide_modal", 
+              "open_drawer", 
+              "close_drawer",
+              "scroll_to", 
+              "highlight_element", 
+              "change_theme", 
+              "toggle_sidebar",
+              "open_filters",
+              "close_filters"
+            ],
+            "description": "UI control action"
+          },
+          "target": {
+            "type": "string",
+            "description": "Target element or component ID"
+          },
+          "modal_type": {
+            "type": "string",
+            "enum": [
+              "product_quick_view", 
+              "cart_preview", 
+              "checkout_confirmation",
+              "product_comparison",
+              "address_form",
+              "payment_form"
+            ],
+            "description": "Type of modal to show"
+          },
+          "modal_data": {
+            "type": "object",
+            "description": "Data to pass to modal component"
+          },
+          "theme": {
+            "type": "string",
+            "enum": ["light", "dark"],
+            "description": "Theme to apply"
+          },
+          "scroll_target": {
+            "type": "string",
+            "description": "Element to scroll to"
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "notify_user",
+      "description": "Show notifications and messages to user using Berry's Snackbar system",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Notification message to display"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["success", "error", "warning", "info"],
+            "default": "info",
+            "description": "Type of notification"
+          },
+          "duration": {
+            "type": "number",
+            "default": 4000,
+            "description": "Duration in milliseconds"
+          },
+          "action": {
+            "type": "object",
+            "properties": {
+              "label": {"type": "string"},
+              "callback": {"type": "string"}
+            },
+            "description": "Optional action button"
+          },
+          "position": {
+            "type": "string",
+            "enum": ["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"],
+            "default": "bottom-center",
+            "description": "Notification position"
+          }
+        },
+        "required": ["message"]
+      }
+    },
+    {
+      "name": "manage_comparison",
+      "description": "Handle product comparison functionality",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["add_to_compare", "remove_from_compare", "view_comparison", "clear_comparison"],
+            "description": "Comparison action to perform"
+          },
+          "product_ids": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Product IDs for comparison"
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "manage_wishlist",
+      "description": "Handle wishlist operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["add", "remove", "view", "clear"],
+            "description": "Wishlist action to perform"
+          },
+          "product_id": {
+            "type": "string",
+            "description": "Product ID for wishlist operations"
+          }
+        },
+        "required": ["action"]
+      }
+    },
+    {
+      "name": "checkout_operations",
+      "description": "Handle checkout process operations",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["start_checkout", "next_step", "previous_step", "update_address", "select_payment", "place_order"],
+            "description": "Checkout action to perform"
+          },
+          "step": {
+            "type": "string",
+            "enum": ["cart", "billing", "payment"],
+            "description": "Checkout step to navigate to"
+          },
+          "address_data": {
+            "type": "object",
+            "description": "Address information for checkout"
+          },
+          "payment_method": {
+            "type": "string",
+            "enum": ["card", "paypal", "cod"],
+            "description": "Selected payment method"
+          }
+        },
+        "required": ["action"]
+      }
+    }
+  ],
+  "event_types": [
+    {
+      "name": "text_chunk",
+      "description": "Streaming text response from AI agent"
+    },
+    {
+      "name": "function_call", 
+      "description": "AI agent function call to control UI"
+    },
+    {
+      "name": "thinking",
+      "description": "AI agent processing/thinking indicator"
+    },
+    {
+      "name": "function_result",
+      "description": "Result of function call execution"
+    },
+    {
+      "name": "complete",
+      "description": "Stream completion event"
+    },
+    {
+      "name": "error",
+      "description": "Error event during processing"
+    }
+  ]
+} 
