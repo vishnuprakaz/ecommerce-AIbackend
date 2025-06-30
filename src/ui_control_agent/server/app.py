@@ -1,50 +1,41 @@
 """
-FastAPI application factory
+Simple FastAPI server for UI Control Agent.
+Clean, straightforward server implementation.
 """
 
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
-from ..core.agent import UIControlAgent
-from ..a2a.server import add_a2a_routes
-from .routes import add_api_routes
-from .middleware import add_middleware
+
+from ..agent import UIControlAgent
 
 logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application"""
+    """Create FastAPI application with UI Control Agent"""
     
-    # Initialize the UI control agent
+    # Initialize agent
     agent = UIControlAgent()
     
     # Create FastAPI app
     app = FastAPI(
         title="UI Control Agent API",
-        description="AI-powered conversational UI control backend with A2A protocol support",
-        version="0.2.0",
-        docs_url="/docs",
-        redoc_url="/redoc"
+        description="Simple, clean API for UI control operations",
+        version="2.0.0"
     )
-    
-    # Add middleware
-    add_middleware(app)
     
     # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # In production, specify actual origins
+        allow_origins=["*"],
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["*"],
         allow_headers=["*"],
     )
     
-    # Add API routes
-    add_api_routes(app, agent)
+    # Store agent in app state for access in routes
+    app.state.agent = agent
     
-    # Add A2A protocol routes
-    add_a2a_routes(app, agent)
-    
-    logger.info("FastAPI application created successfully")
+    logger.info("FastAPI app created successfully")
     return app 

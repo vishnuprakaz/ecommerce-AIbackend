@@ -1,204 +1,165 @@
 """
-API routes for the UI control agent server
+Simple API routes for UI Control Agent.
+Clean, easy to understand route definitions.
+Now with conversation management!
 """
 
-import os
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
-from enum import Enum
 import logging
-
-
-# Simple models to replace deleted legacy models
-class ChatMessage(BaseModel):
-    message: str
-    user_id: str = "anonymous"
-
-
-class ToolRequest(BaseModel):
-    tool_name: str
-    parameters: Dict[str, Any] = {}
-
-
-class ResponseStatus(str, Enum):
-    SUCCESS = "success"
-    ERROR = "error"
-    PENDING = "pending"
-
-
-class ChatResponse(BaseModel):
-    response: str
-    user_id: str
-    status: ResponseStatus
-    tools_available: int
-    note: Optional[str] = None
-
-
-class ToolResponse(BaseModel):
-    result: Dict[str, Any]
-    status: ResponseStatus
-    tool_name: str
-    execution_time: float
-
-
-class HealthResponse(BaseModel):
-    status: str
-    openai_configured: bool
-    tools_loaded: int
-    a2a_enabled: bool
-    agent_mode: str
-
-
-class ToolsResponse(BaseModel):
-    tools: List[Dict[str, Any]]
-    count: int
-    agent_mode: str
+import json
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
 
-def add_api_routes(app: FastAPI, agent):
-    """Add all API routes to the FastAPI app"""
+class ChatRequest(BaseModel):
+    """Simple chat request model"""
+    message: str
+    session_id: str = "default"
+
+
+class UICallbackRequest(BaseModel):
+    """UI callback request model for sending results back to agent"""
+    action_id: str
+    ui_data: Dict[str, Any]
+    session_id: str = "default"
+
+
+def add_routes(app: FastAPI):
+    """Add all routes to the FastAPI app"""
     
-    @app.get("/", tags=["General"])
-    async def root():
-        """Root endpoint with API information"""
-        return {
-            "message": "UI Control Agent API", 
-            "version": "0.2.0",
-            "a2a_discovery": "/.well-known/agent.json",
-            "test_client": "/test",
-            "documentation": "/docs"
-        }
-
-    @app.get("/test", response_class=HTMLResponse, tags=["Testing"])
-    async def test_client():
-        """Serve the HTML test client for streaming"""
-        try:
-            with open("static/test_client.html", "r") as f:
-                return HTMLResponse(content=f.read())
-        except FileNotFoundError:
-            raise HTTPException(status_code=404, detail="Test client not found")
-
-    @app.get("/health", response_model=HealthResponse, tags=["Health"])
-    async def health():
-        """Health check endpoint - OpenAI required"""
-        try:
-            # Check OpenAI configuration
-            if not agent.is_openai_available():
-                return HealthResponse(
-                    status="error",
-                    openai_configured=False,
-                    tools_loaded=len(agent.tools),
-                    a2a_enabled=False,
-                    agent_mode="error"
-                )
-            
-            # Check workflow initialization
-            if not hasattr(agent, 'workflow') or agent.workflow is None:
-                return HealthResponse(
-                    status="error",
-                    openai_configured=True,
-                    tools_loaded=len(agent.tools),
-                    a2a_enabled=False,
-                    agent_mode="error"
-                )
-            
-            # All systems operational
-            return HealthResponse(
-                status="ok",
-                openai_configured=True,
-                tools_loaded=len(agent.tools),
-                a2a_enabled=True,
-                agent_mode="openai"
-            )
-        except Exception as e:
-            logger.error(f"Health check failed: {e}")
-            return HealthResponse(
-                status="error",
-                openai_configured=False,
-                tools_loaded=0,
-                a2a_enabled=False,
-                agent_mode="error"
-            )
-
-    @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
-    async def chat(msg: ChatMessage):
-        """Legacy chat endpoint - use /a2a/message/stream for A2A protocol"""
-        try:
-            # Validate agent is ready
-            if not hasattr(agent, 'tools'):
-                raise HTTPException(status_code=503, detail="Agent not ready")
-            
-            # Validate OpenAI is available
-            if not agent.is_openai_available():
-                raise HTTPException(status_code=503, detail="OpenAI API not configured")
-            
-            # Use the agent to process the message
-            result = agent.process_message(msg.message)
-            
-            # Check for errors in result
-            if result.get("status") == "error":
-                raise HTTPException(status_code=500, detail=result.get("error", "Unknown error"))
-            
-            return ChatResponse(
-                response=result["response"],
-                user_id=msg.user_id,
-                status=ResponseStatus(result["status"]),
-                tools_available=result.get("tools_available", 0),
-                note="For streaming responses, use /a2a/message/stream"
-            )
-        except ValueError as e:
-            logger.warning(f"Chat validation error: {e}")
-            raise HTTPException(status_code=422, detail=f"Validation error: {str(e)}")
-        except Exception as e:
-            logger.error(f"Chat processing error: {e}")
-            raise HTTPException(status_code=500, detail=f"Error processing message: {str(e)}")
-
-    @app.get("/tools", response_model=ToolsResponse, tags=["Tools"])
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint"""
+        return app.state.agent.get_health_status()
+    
+    @app.get("/tools")
     async def get_tools():
         """Get available tools"""
-        try:
-            if not agent.is_openai_available():
-                raise HTTPException(status_code=503, detail="OpenAI API not configured")
+        agent = app.state.agent
+        return {
+            "tools": [{"name": tool.name, "description": tool.description} for tool in agent.workflow.tools if hasattr(tool, 'name')],
+            "count": len(agent.workflow.tools),
+            "agent_mode": "ui_first_with_memory"
+        }
+    
+    @app.post("/chat")
+    async def chat(request: ChatRequest):
+        """Simple chat endpoint (non-streaming)"""
+        agent = app.state.agent
+        result = await agent.process_message(request.message, request.session_id)
             
-            return ToolsResponse(
-                tools=agent.tools,
-                count=len(agent.tools),
-                agent_mode="openai"
+        return {
+            "response": result["response"],
+            "user_id": "anonymous",
+            "status": result["status"],
+            "tools_available": len(agent.workflow.tools),
+            "conversation_stats": result.get("conversation_stats", {}),
+            "note": "For streaming responses, use /stream"
+        }
+    
+    @app.post("/stream")
+    async def stream_chat(request: ChatRequest):
+        """Streaming chat endpoint - UI first architecture with conversation memory"""
+        agent = app.state.agent
+        
+        return StreamingResponse(
+            agent.stream_message(request.message, request.session_id),
+            media_type="application/x-ndjson"
             )
-        except Exception as e:
-            logger.error(f"Tools listing error: {e}")
-            raise HTTPException(status_code=500, detail=f"Error fetching tools: {str(e)}")
-
-    @app.post("/tools/execute", response_model=ToolResponse, tags=["Tools"])
-    async def execute_tool(request: ToolRequest):
-        """Execute a specific tool for testing"""
+    
+    @app.post("/ui/callback")
+    async def ui_callback(request: UICallbackRequest):
+        """UI callback endpoint for sending action results back to agent"""
         try:
-            # Check if tool exists
-            available_tools = [tool["name"] for tool in agent.tools]
-            if request.tool_name not in available_tools:
-                raise HTTPException(
-                    status_code=404, 
-                    detail=f"Tool '{request.tool_name}' not found. Available: {available_tools}"
-                )
+            agent = app.state.agent
+            result = await agent.workflow.process_ui_callback(request.action_id, request.ui_data)
             
-            import time
-            start_time = time.time()
-            result = agent.execute_tool(request.tool_name, request.parameters)
-            execution_time = time.time() - start_time
+            # Just acknowledge receipt - the stream endpoint is waiting for results
+            return {
+                "status": result.get("status", "success"),
+                "message": result.get("message", "Callback processed"),
+                "action_id": request.action_id
+            }
             
-            return ToolResponse(
-                result=result,
-                status=ResponseStatus.SUCCESS if result.get("success") else ResponseStatus.ERROR,
-                tool_name=request.tool_name,
-                execution_time=execution_time
-            )
-        except ValueError as e:
-            logger.warning(f"Tool execution validation error: {e}")
-            raise HTTPException(status_code=422, detail=f"Validation error: {str(e)}")
         except Exception as e:
-            logger.error(f"Tool execution error: {e}")
-            raise HTTPException(status_code=500, detail=f"Error executing tool: {str(e)}") 
+            logger.error(f"UI callback error: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    # === CONVERSATION MANAGEMENT ROUTES ===
+    
+    @app.get("/conversations")
+    async def get_all_conversations():
+        """Get all active conversation sessions"""
+        agent = app.state.agent
+        conversations = agent.workflow.get_all_conversations()
+        
+        return {
+            "conversations": conversations,
+            "total_sessions": len(conversations),
+            "active_sessions": sum(1 for conv in conversations.values() if conv.get("exists", False))
+        }
+    
+    @app.get("/conversations/{session_id}")
+    async def get_conversation_history(session_id: str):
+        """Get conversation history for a specific session"""
+        agent = app.state.agent
+        history = agent.workflow.get_conversation_history(session_id)
+        
+        return history
+    
+    @app.delete("/conversations/{session_id}")
+    async def clear_conversation(session_id: str):
+        """Clear conversation history for a specific session"""
+        try:
+            agent = app.state.agent
+            # Clear the session from memory
+            if session_id in agent.workflow.memory.conversations:
+                del agent.workflow.memory.conversations[session_id]
+                del agent.workflow.memory.session_last_activity[session_id]
+                
+                return {
+                    "status": "success",
+                    "message": f"Conversation {session_id} cleared",
+                    "session_id": session_id
+                }
+            else:
+                return {
+                    "status": "not_found",
+                    "message": f"Conversation {session_id} not found",
+                    "session_id": session_id
+                }
+        except Exception as e:
+            logger.error(f"Error clearing conversation {session_id}: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    @app.post("/conversations/cleanup")
+    async def cleanup_old_conversations():
+        """Clean up old inactive conversations"""
+        try:
+            agent = app.state.agent
+            cleaned_count = agent.workflow.cleanup_old_conversations()
+            
+            return {
+                "status": "success",
+                "message": f"Cleaned up {cleaned_count} old conversations",
+                "cleaned_sessions": cleaned_count
+            }
+        except Exception as e:
+            logger.error(f"Error cleaning up conversations: {e}")
+            return {"status": "error", "message": str(e)}
+    
+    # Legacy A2A-style streaming endpoint for compatibility
+    @app.post("/a2a/message/stream")
+    async def a2a_stream_chat(request: ChatRequest):
+        """A2A-compatible streaming endpoint"""
+        agent = app.state.agent
+        
+        return StreamingResponse(
+            agent.stream_message(request.message, request.session_id),
+            media_type="text/plain"
+        )
+    
+    logger.info("Routes added successfully") 

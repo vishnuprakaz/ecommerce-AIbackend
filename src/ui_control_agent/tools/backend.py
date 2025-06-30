@@ -1,6 +1,6 @@
 """
-Backend tools for direct data operations
-Simplified to essential tools only
+Backend data tools for the UI control agent.
+Simple, clean implementation for getting actual product data.
 """
 
 import logging
@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class BackendTools:
-    """Simplified backend tools for data operations"""
+    """Backend tools for data operations"""
     
     def __init__(self):
         """Initialize backend tools"""
-        logger.info("Backend tools initialized - simplified version")
+        logger.info("Backend tools initialized")
     
     def search_products_data(self, query: str, **filters) -> dict:
         """Search for products and return actual product data"""
@@ -81,7 +81,7 @@ class BackendTools:
             }
         ]
         
-        # Apply basic filters
+        # Apply filters
         results = []
         query_lower = query.lower()
         

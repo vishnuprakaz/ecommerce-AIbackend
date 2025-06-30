@@ -1,11 +1,13 @@
 """
-UI Control Agent - AI-powered conversational UI control backend
+UI Control Agent - Simple, Clean, Developer-Friendly
+
+A clean, straightforward UI control agent for conversational interfaces.
+Perfect for developers with 2-3 years experience to understand and extend.
 """
 
-__version__ = "0.2.0"
-__author__ = "UI Control Agent Team"
+from .agent import UIControlAgent
+from .config import SimpleConfig
+from .workflow import SimpleWorkflow
 
-from .core.agent import UIControlAgent
-from .core.config import get_config
-
-__all__ = ["UIControlAgent", "get_config"] 
+__version__ = "2.0.0"
+__all__ = ["UIControlAgent", "SimpleConfig", "SimpleWorkflow"] 
