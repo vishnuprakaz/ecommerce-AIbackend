@@ -80,6 +80,7 @@
         .event-partial_response { background: #e7f3ff; border-left: 4px solid #007bff; }
         .event-tools_executing { background: #ffeaa7; border-left: 4px solid #fd79a8; }
         .event-tool_results { background: #a8e6cf; border-left: 4px solid #00b894; }
+        .event-ui_event { background: #ffc9dd; border-left: 4px solid #e83e8c; }
         .event-final_response { background: #ddd6fe; border-left: 4px solid #8b5cf6; }
         .event-workflow_complete { background: #d1ecf1; border-left: 4px solid #17a2b8; }
         .event-workflow_error { background: #f8d7da; border-left: 4px solid #dc3545; }
@@ -284,6 +285,11 @@
                 case 'tool_results':
                     addEvent('tool_results', data);
                     updateStatus(`Tool execution complete (${data.results} results)`);
+                    break;
+                case 'ui_event':
+                    addEvent('ui_event', data);
+                    updateStatus(`UI Event: ${data.ui_event.event_type} - ${JSON.stringify(data.ui_event.parameters)}`);
+                    // In a real app, this would trigger UI changes
                     break;
                 case 'final_response':
                     addEvent('final_response', data);

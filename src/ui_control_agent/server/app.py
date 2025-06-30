@@ -5,7 +5,7 @@ FastAPI application factory
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from ..core.agent import EcommerceAgent
+from ..core.agent import UIControlAgent
 from ..a2a.server import add_a2a_routes
 from .routes import add_api_routes
 from .middleware import add_middleware
@@ -16,13 +16,13 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application"""
     
-    # Initialize the ecommerce agent
-    agent = EcommerceAgent()
+    # Initialize the UI control agent
+    agent = UIControlAgent()
     
     # Create FastAPI app
     app = FastAPI(
-        title="Ecommerce Agent API",
-        description="AI-powered conversational ecommerce backend with A2A protocol support",
+        title="UI Control Agent API",
+        description="AI-powered conversational UI control backend with A2A protocol support",
         version="0.2.0",
         docs_url="/docs",
         redoc_url="/redoc"

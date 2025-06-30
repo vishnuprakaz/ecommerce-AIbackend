@@ -4,13 +4,20 @@ A2A (Agent-to-Agent) protocol server implementation
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
+from pydantic import BaseModel
 import json
 import time
 import logging
-from ..models.requests import A2AMessage
 
 logger = logging.getLogger(__name__)
+
+
+class A2AMessage(BaseModel):
+    """A2A message format"""
+    message: str
+    user_id: str = "anonymous"
+    context_id: Optional[str] = None
 
 
 class A2AServer:
@@ -49,8 +56,8 @@ def add_a2a_routes(app: FastAPI, agent):
     async def agent_discovery():
         """A2A agent discovery endpoint"""
         return {
-            "name": "Ecommerce Agent",
-            "description": "AI agent for conversational ecommerce interactions",
+            "name": "UI Control Agent",
+            "description": "AI agent for conversational UI control interactions",
             "version": "0.2.0",
             "capabilities": [
                 "product_search",
